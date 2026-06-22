@@ -2,6 +2,7 @@
 
 import Link from "next/link"
 import { ArrowLeft } from "lucide-react"
+import { Footer } from "@/components/delivery/footer"
 
 export default function PoliticaPrivacidade() {
   return (
@@ -78,6 +79,7 @@ export default function PoliticaPrivacidade() {
           </div>
         </div>
       </div>
+      <Footer />
     </div>
   )
 }

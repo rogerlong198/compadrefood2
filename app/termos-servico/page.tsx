@@ -2,6 +2,7 @@
 
 import Link from "next/link"
 import { ArrowLeft } from "lucide-react"
+import { Footer } from "@/components/delivery/footer"
 
 export default function TermosServico() {
   return (
@@ -100,6 +101,7 @@ export default function TermosServico() {
           </div>
         </div>
       </div>
+      <Footer />
     </div>
   )
 }

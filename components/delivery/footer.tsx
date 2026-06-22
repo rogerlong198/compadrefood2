@@ -1,16 +1,37 @@
 "use client"
 
 import Link from "next/link"
-import { FileText, Shield, Cookie, ShieldAlert } from "lucide-react"
+import { FileText, Shield, Cookie, ShieldAlert, RefreshCcw, Truck, Mail } from "lucide-react"
 
 export function Footer() {
   return (
     <footer className="mt-16 bg-card border-t border-border">
       <div className="max-w-4xl mx-auto px-4 py-8">
-        {/* Políticas e Conformidade */}
+        {/* Atendimento e Políticas */}
         <div className="mb-8">
-          <h3 className="text-sm font-semibold text-foreground mb-4">Políticas e Conformidade</h3>
+          <h3 className="text-sm font-semibold text-foreground mb-4">Atendimento e Políticas</h3>
           <div className="space-y-2">
+            <Link
+              href="/contato"
+              className="flex items-center gap-2 text-primary hover:text-primary/80 transition-colors py-2"
+            >
+              <Mail className="w-4 h-4" />
+              <span className="text-sm">Contato</span>
+            </Link>
+            <Link
+              href="/entrega"
+              className="flex items-center gap-2 text-primary hover:text-primary/80 transition-colors py-2"
+            >
+              <Truck className="w-4 h-4" />
+              <span className="text-sm">Entrega e Frete</span>
+            </Link>
+            <Link
+              href="/trocas"
+              className="flex items-center gap-2 text-primary hover:text-primary/80 transition-colors py-2"
+            >
+              <RefreshCcw className="w-4 h-4" />
+              <span className="text-sm">Trocas e Devoluções</span>
+            </Link>
             <Link
               href="/politica-privacidade"
               className="flex items-center gap-2 text-primary hover:text-primary/80 transition-colors py-2"

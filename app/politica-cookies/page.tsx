@@ -2,6 +2,7 @@
 
 import Link from "next/link"
 import { ArrowLeft } from "lucide-react"
+import { Footer } from "@/components/delivery/footer"
 
 export default function PoliticaCookies() {
   return (
@@ -90,6 +91,7 @@ export default function PoliticaCookies() {
           </div>
         </div>
       </div>
+      <Footer />
     </div>
   )
 }

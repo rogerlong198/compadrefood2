@@ -15,11 +15,11 @@ const stepVariants = {
   exit: (dir: number) => ({ opacity: 0, x: dir >= 0 ? -14 : 14 }),
 };
 
-const ORDER_LOOKUP_STORAGE_KEY = 'arco-bebidas-order-lookup-v1';
+const ORDER_LOOKUP_STORAGE_KEY = 'compadrefood-order-lookup-v1';
 
 // Snapshot da tela de "Pedido Confirmado" — persistido para sobreviver a reload
 // ou à pessoa sair da aba e voltar (senão ela perde o código do pedido).
-const CONFIRMED_ORDER_STORAGE_KEY = 'arco-bebidas-confirmed-order-v1';
+const CONFIRMED_ORDER_STORAGE_KEY = 'compadrefood-confirmed-order-v1';
 
 type ConfirmedOrder = {
   orderCode: string;
@@ -70,7 +70,7 @@ function clearConfirmedOrder() {
 
 // Google Ads — conversao de compra (conta CompadreFood; mesma tag do layout.tsx)
 const GOOGLE_ADS_CONVERSION_SEND_TO = 'AW-18249151503/tgPxCP2UpcEcEI_o7_1D';
-const GOOGLE_ADS_CONVERSION_STORAGE_KEY = 'arco-bebidas-google-ads-conversions-v1';
+const GOOGLE_ADS_CONVERSION_STORAGE_KEY = 'compadrefood-google-ads-conversions-v1';
 
 declare global {
   interface Window {

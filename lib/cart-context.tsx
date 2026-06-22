@@ -4,7 +4,7 @@ import { createContext, useContext, useState, useEffect, type ReactNode } from "
 import type { CartItem, Product, Additional } from "./types"
 
 // Persistimos o carrinho para sobreviver à navegação até /checkout (e a reloads).
-const STORAGE_KEY = "arco-bebidas-cart"
+const STORAGE_KEY = "compadrefood-cart"
 
 function loadCart(): CartItem[] {
   if (typeof window === "undefined") return []

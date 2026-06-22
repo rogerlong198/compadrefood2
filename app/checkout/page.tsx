@@ -69,7 +69,7 @@ function clearConfirmedOrder() {
 }
 
 // Google Ads — conversao de compra (conta CompadreFood; mesma tag do layout.tsx)
-const GOOGLE_ADS_CONVERSION_SEND_TO = 'AW-17934359668/b5kPCJ_O3_gbEPS44udC';
+const GOOGLE_ADS_CONVERSION_SEND_TO = 'AW-18249151503/tgPxCP2UpcEcEI_o7_1D';
 const GOOGLE_ADS_CONVERSION_STORAGE_KEY = 'arco-bebidas-google-ads-conversions-v1';
 
 declare global {
@@ -583,13 +583,14 @@ function CheckoutContent() {
   // Dispara o e-mail de confirmação (cliente + loja). "Best effort": falha não
   // bloqueia a confirmação. Só funciona com RESEND_API_KEY/RESEND_FROM_EMAIL.
   const sendOrderConfirmationEmail = useCallback(
-    async (code: string, method: 'pix' | 'card') => {
+    async (code: string, method: 'pix' | 'card', txid?: string | null) => {
       if (!email || items.length === 0) return;
       try {
         await fetch('/api/email/order-confirmation', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
+            txid: txid ?? undefined,
             orderCode: code,
             paymentMethod: method,
             customer: {
@@ -636,6 +637,28 @@ function CheckoutContent() {
           name,
           email,
           title: 'Pedido CompadreFood',
+          // Snapshot do pedido pro webhook mandar o e-mail mesmo se a aba fechar.
+          order: {
+            customer: {
+              name: name.trim(),
+              email: email.trim(),
+              phone: phone.replace(/\D/g, ''),
+              cpf: cpf.replace(/\D/g, ''),
+            },
+            address: {
+              cep: cep.trim(),
+              street: street.trim(),
+              number: number.trim(),
+              complement: complement.trim() || undefined,
+              neighborhood: neighborhood.trim(),
+              city: city.trim(),
+              stateUF: stateUF.trim().toUpperCase(),
+            },
+            items: items.map((it) => ({ name: it.name, image: it.image, price: it.price, quantity: it.quantity })),
+            subtotal: totalPrice,
+            shipping: 0,
+            total: checkoutTotal,
+          },
         })
       });
 
@@ -705,7 +728,7 @@ function CheckoutContent() {
           setConfirmedOrder(snapshot);
           persistConfirmedOrder(snapshot);
           setPaymentConfirmed(true);
-          void sendOrderConfirmationEmail(code, 'pix');
+          void sendOrderConfirmationEmail(code, 'pix', pixData.txid);
         }
       } catch {
         // O PIX continua aguardando a confirmacao do gateway.
@@ -800,7 +823,7 @@ function CheckoutContent() {
       };
       setConfirmedOrder(snapshot);
       persistConfirmedOrder(snapshot);
-      void sendOrderConfirmationEmail(code, 'card');
+      void sendOrderConfirmationEmail(code, 'card', transaction?.id ?? null);
       setTimeout(() => setPaymentConfirmed(true), 1500);
     } else if (definitiveFailure) {
       // Só remonta o card em falha definitiva. Em "em análise"/pendente NÃO

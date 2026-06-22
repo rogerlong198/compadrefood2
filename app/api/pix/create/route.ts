@@ -1,4 +1,6 @@
 import { NextResponse } from "next/server"
+import { generateOrderCode, kvConfigured, saveOrderSnapshot } from "@/lib/order-store"
+import type { OrderEmailInput } from "@/lib/order-email"
 
 export const dynamic = "force-dynamic"
 
@@ -158,6 +160,34 @@ export async function POST(request: Request) {
 
     const expiresAt = pix.expiration_date ?? new Date(Date.now() + 10 * 60 * 1000).toISOString()
     const txid = transaction?.id ?? data?.id ?? data?.transactionId ?? null
+
+    // Persiste o pedido no KV (chave = txid) pro webhook poder mandar o e-mail
+    // mesmo se o cliente fechar a aba. Best effort: nunca derruba o PIX.
+    const order = body?.order
+    if (
+      txid &&
+      kvConfigured() &&
+      order?.customer?.email &&
+      Array.isArray(order?.items) &&
+      order.items.length > 0 &&
+      order?.address
+    ) {
+      try {
+        const snapshot: OrderEmailInput = {
+          orderCode: generateOrderCode(String(txid)),
+          paymentMethod: "pix",
+          customer: order.customer,
+          address: order.address,
+          items: order.items,
+          subtotal: Number(order.subtotal) || Number(value),
+          shipping: Number(order.shipping) || 0,
+          total: Number(order.total) || Number(value),
+        }
+        await saveOrderSnapshot(String(txid), snapshot)
+      } catch (e) {
+        console.error("[PIX API] Falha ao salvar snapshot no KV:", e)
+      }
+    }
 
     return NextResponse.json({
       txid,

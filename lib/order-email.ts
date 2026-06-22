@@ -46,7 +46,7 @@ const BRAND_LOGO_URL = `${APP_URL}/logo.png`;
 const C = {
   primary: "#1a1a1a",
   dark: "#1a1a1a",
-  accent: "#e8202b", // vermelho Arco
+  accent: "#e8202b", // vermelho CompadreFood
   accentSoft: "#fff1f1",
   accentBorder: "#f6c9cc",
   green: "#16a34a",

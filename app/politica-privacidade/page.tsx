@@ -22,7 +22,7 @@ export default function PoliticaPrivacidade() {
             <section className="space-y-2">
               <h2 className="text-lg font-semibold text-foreground">1. Introdução</h2>
               <p>
-                A Bebidas Arco Iris LTDA está comprometida com a proteção da sua privacidade. Esta Política de Privacidade
+                A M R COSTEIRA LTDA (CompadreFood) está comprometida com a proteção da sua privacidade. Esta Política de Privacidade
                 descreve como coletamos, usamos e protegemos suas informações pessoais.
               </p>
             </section>
@@ -55,15 +55,20 @@ export default function PoliticaPrivacidade() {
               <h2 className="text-lg font-semibold text-foreground">5. Direitos do Usuário</h2>
               <p>
                 Você tem o direito de acessar, corrigir ou solicitar a exclusão de seus dados pessoais. Para exercer esses
-                direitos, entre em contato conosco pelo e-mail contato@arcobebidas.com.br
+                direitos, entre em contato conosco pelo e-mail suporte@compadrefood.com
               </p>
             </section>
 
             <section className="space-y-2">
               <h2 className="text-lg font-semibold text-foreground">6. Contato</h2>
               <p>
-                Se tiver dúvidas sobre esta Política de Privacidade, entre em contato conosco através dos canais disponíveis
-                em nosso site.
+                Se tiver dúvidas sobre esta Política de Privacidade, entre em contato conosco pelo e-mail
+                suporte@compadrefood.com
+              </p>
+              <p>
+                <strong className="text-foreground">M R COSTEIRA LTDA</strong> — CNPJ 58.702.190/0002-50
+                <br />
+                Rua Vereador Francisco Diniz, 80, Anexo A — Trizidela, Barra do Corda - MA — CEP 65.950-000
               </p>
             </section>
           </div>

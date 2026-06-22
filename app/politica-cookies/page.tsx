@@ -75,7 +75,12 @@ export default function PoliticaCookies() {
             <section className="space-y-2">
               <h2 className="text-lg font-semibold text-foreground">7. Contato</h2>
               <p>
-                Para dúvidas sobre cookies e privacidade, entre em contato pelo e-mail contato@arcobebidas.com.br
+                Para dúvidas sobre cookies e privacidade, entre em contato pelo e-mail suporte@compadrefood.com
+              </p>
+              <p>
+                <strong className="text-foreground">M R COSTEIRA LTDA</strong> — CNPJ 58.702.190/0002-50
+                <br />
+                Rua Vereador Francisco Diniz, 80, Anexo A — Trizidela, Barra do Corda - MA — CEP 65.950-000
               </p>
             </section>
           </div>

@@ -51,14 +51,18 @@ export function Footer() {
         </div>
 
         {/* Informações da Empresa */}
-        <div className="border-t border-border pt-6 mt-6">
-          
+        <div className="border-t border-border pt-6 mt-6 space-y-1">
+          <p className="text-xs font-semibold text-foreground">M R COSTEIRA LTDA</p>
+          <p className="text-xs text-muted-foreground">CNPJ: 58.702.190/0002-50</p>
+          <p className="text-xs text-muted-foreground">
+            Rua Vereador Francisco Diniz, 80, Anexo A — Trizidela, Barra do Corda - MA — CEP 65.950-000
+          </p>
           <p className="text-xs text-muted-foreground">
             Contato:{" "}
-            <a href="mailto:contato@arcobebidas.com.br" className="text-primary hover:underline">contato@arcobebidas.com.br</a>
+            <a href="mailto:suporte@compadrefood.com" className="text-primary hover:underline">suporte@compadrefood.com</a>
           </p>
-          <p className="text-xs text-muted-foreground mt-1">
-            © {new Date().getFullYear()} Bebidas Arco Iris LTDA. Todos os direitos reservados.
+          <p className="text-xs text-muted-foreground pt-1">
+            © {new Date().getFullYear()} M R COSTEIRA LTDA. Todos os direitos reservados.
           </p>
         </div>
       </div>

@@ -42,6 +42,19 @@ function DeliveryApp() {
     setCopaOn(copaAtiva())
   }, [])
 
+  // Conversão de "Visualização de página" no Google Ads — dispara a cada
+  // carregamento da home.
+  useEffect(() => {
+    const w = window as Window & { dataLayer?: unknown[]; gtag?: (...args: unknown[]) => void }
+    if (typeof w.gtag !== "function") {
+      w.dataLayer = w.dataLayer || []
+      w.gtag = function gtag() {
+        w.dataLayer?.push(arguments)
+      }
+    }
+    w.gtag("event", "conversion", { send_to: "AW-18249151503/vtPFCMC6ncQcEI_o7_1D" })
+  }, [])
+
   const esquentaProducts = ESQUENTA_IDS
     .map((id) => products.find((p) => p.id === id))
     .filter(Boolean) as Product[]

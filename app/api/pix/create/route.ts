@@ -187,7 +187,7 @@ export async function POST(request: Request) {
           shipping: Number(order.shipping) || 0,
           total: Number(order.total) || Number(value),
         }
-        await saveOrderSnapshot(String(txid), snapshot)
+        await saveOrderSnapshot(String(txid), snapshot, Date.now())
 
         // Agenda o e-mail de carrinho abandonado: se em ABANDONED_DELAY_MIN o
         // pedido não estiver pago, o QStash chama /api/abandoned/check.

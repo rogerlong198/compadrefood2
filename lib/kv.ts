@@ -54,3 +54,14 @@ export async function kvClaimOnce(key: string, ttlSeconds: number): Promise<bool
   const result = await command(["SET", key, "1", "NX", "EX", ttlSeconds])
   return result === "OK"
 }
+
+// Sorted set: adiciona/atualiza um membro com score (usamos pra indexar pedidos por data).
+export async function kvZAdd(key: string, score: number, member: string): Promise<void> {
+  await command(["ZADD", key, score, member])
+}
+
+// Sorted set: retorna os membros em ordem decrescente de score (mais recentes primeiro).
+export async function kvZRevRange(key: string, start: number, stop: number): Promise<string[]> {
+  const res = await command(["ZREVRANGE", key, start, stop])
+  return Array.isArray(res) ? res.map(String) : []
+}

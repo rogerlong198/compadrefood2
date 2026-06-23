@@ -751,7 +751,7 @@ function CheckoutContent() {
     }
   };
 
-  const handlePixProofChange = (event: React.ChangeEvent<HTMLInputElement>) => {
+  const handlePixProofChange = async (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
     setPixProofError(null);
 
@@ -783,6 +783,20 @@ function CheckoutContent() {
 
     setPixProof(proof);
     if (orderCode) savePixProofLookup(orderCode, proof);
+
+    // Sobe o comprovante pro servidor (Vercel Blob) pra aparecer no painel admin.
+    // Best effort: se falhar, não atrapalha o cliente (o anexo é opcional).
+    const txid = pixData?.txid;
+    if (txid) {
+      try {
+        const fd = new FormData();
+        fd.append('txid', txid);
+        fd.append('file', file);
+        await fetch('/api/proof/upload', { method: 'POST', body: fd });
+      } catch (err) {
+        console.error('[PROOF] Falha ao subir comprovante:', err);
+      }
+    }
   };
 
   // Remonta o Payment Element após uma falha (banco recusa, antifraude, etc).

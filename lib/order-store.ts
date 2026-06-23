@@ -2,18 +2,33 @@
 // na criação do PIX (chave = txid), e o webhook da Pagou.ai lê de volta quando o
 // pagamento confirma — assim o e-mail sai mesmo se o cliente fechar a aba.
 
-import { kvClaimOnce, kvConfigured, kvDel, kvGetJSON, kvSetJSON } from "./kv"
+import { kvClaimOnce, kvConfigured, kvDel, kvGetJSON, kvSetJSON, kvZAdd, kvZRevRange } from "./kv"
 import type { OrderEmailInput } from "./order-email"
 
 export { kvConfigured }
 
+// Pedido como guardado no KV: o snapshot do e-mail + metadados pro admin.
+export type StoredOrder = OrderEmailInput & {
+  txid?: string
+  createdAt?: string
+  proofUrl?: string
+}
+
+export type AdminOrder = StoredOrder & {
+  txid: string
+  status: "pago" | "aguardando" | "abandonado"
+}
+
 // 3 dias de folga entre criar o PIX e a confirmação/reprocessamento do webhook.
 const ORDER_TTL_SECONDS = 60 * 60 * 24 * 3
+// Janela sem pagamento a partir da qual consideramos o pedido abandonado (min).
+const ABANDONED_AFTER_MIN = 30
 
 const orderKey = (txid: string) => `order:${txid}`
 const emailLockKey = (txid: string) => `order-email:${txid}`
 const abandonLockKey = (txid: string) => `abandon-sent:${txid}`
 const paidKey = (txid: string) => `paid:${txid}`
+const ORDERS_INDEX = "orders:index"
 
 // Gera um código de pedido no mesmo formato do front (XX000000000XX). Usado só
 // quando é o webhook que dispara o e-mail (aba fechada) — o cliente vê só o e-mail.
@@ -35,12 +50,44 @@ export function generateOrderCode(seed: string): string {
   return `${randomLetters(2)}${number}${randomLetters(2)}`
 }
 
-export async function saveOrderSnapshot(txid: string, order: OrderEmailInput): Promise<void> {
+export async function saveOrderSnapshot(txid: string, order: OrderEmailInput, createdAtMs: number): Promise<void> {
+  const stored: StoredOrder = { ...order, txid, createdAt: new Date(createdAtMs).toISOString() }
+  await kvSetJSON(orderKey(txid), stored, ORDER_TTL_SECONDS)
+  // Indexa por data pro painel admin listar os mais recentes primeiro.
+  await kvZAdd(ORDERS_INDEX, createdAtMs, txid)
+}
+
+export async function getOrderSnapshot(txid: string): Promise<StoredOrder | null> {
+  return kvGetJSON<StoredOrder>(orderKey(txid))
+}
+
+// Salva a URL do comprovante (Vercel Blob) no pedido, preservando o resto.
+export async function setOrderProofUrl(txid: string, proofUrl: string): Promise<void> {
+  const order = await kvGetJSON<StoredOrder>(orderKey(txid))
+  if (!order) return
+  order.proofUrl = proofUrl
   await kvSetJSON(orderKey(txid), order, ORDER_TTL_SECONDS)
 }
 
-export async function getOrderSnapshot(txid: string): Promise<OrderEmailInput | null> {
-  return kvGetJSON<OrderEmailInput>(orderKey(txid))
+// Lista os pedidos mais recentes pro painel admin, já com o status calculado.
+export async function listRecentOrders(limit = 100): Promise<AdminOrder[]> {
+  const txids = await kvZRevRange(ORDERS_INDEX, 0, limit - 1)
+  const out: AdminOrder[] = []
+  for (const txid of txids) {
+    const order = await kvGetJSON<StoredOrder>(orderKey(txid))
+    if (!order) continue
+    const paid = await isOrderPaid(txid)
+    let status: AdminOrder["status"]
+    if (paid) {
+      status = "pago"
+    } else {
+      const createdMs = order.createdAt ? Date.parse(order.createdAt) : 0
+      const ageMin = createdMs ? (Date.now() - createdMs) / 60000 : Infinity
+      status = ageMin >= ABANDONED_AFTER_MIN ? "abandonado" : "aguardando"
+    }
+    out.push({ ...order, txid, status })
+  }
+  return out
 }
 
 // true = você ganhou o direito de enviar o e-mail desse pedido.

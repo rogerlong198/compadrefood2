@@ -6,6 +6,7 @@ import { ArrowLeft, Minus, Plus, UtensilsCrossed, Package } from "lucide-react"
 import type { Product, Additional } from "@/lib/types"
 import { additionals, products, foodAdditionals } from "@/lib/data"
 import { useCart } from "@/lib/cart-context"
+import { useBackClose } from "@/hooks/use-back-close"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { Textarea } from "@/components/ui/textarea"
@@ -18,6 +19,10 @@ interface ProductDetailProps {
 
 export function ProductDetail({ product, onClose, onSelectProduct }: ProductDetailProps) {
   const { addItem, freeAdditionalChosen, setFreeAdditionalChosen } = useCart()
+
+  // Botão "voltar" do celular fecha o produto em vez de sair da loja.
+  useBackClose(true, onClose)
+
   const [quantity, setQuantity] = useState(1)
   const [selectedAdditionals, setSelectedAdditionals] = useState<
     Record<string, number>

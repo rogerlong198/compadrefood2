@@ -5,20 +5,61 @@ import { X, Copy, Check } from "lucide-react"
 import { useCart } from "@/lib/cart-context"
 
 const COUPON_CODE = "COPA"
+// Espera ~7s DEPOIS que a verificação de idade e a localização foram resolvidas,
+// pra não aparecer colado no fechamento desses popups.
+const DELAY_AFTER_READY_MS = 7000
 
-// Popup promocional da home: aparece a cada carregamento da página.
-// `suppressed` evita brigar com o popup de localização (some enquanto ele
-// estiver aberto e reaparece quando o usuário fecha).
-export function CouponPopup({ suppressed = false, delayMs = 900 }: { suppressed?: boolean; delayMs?: number }) {
+// Popup promocional da home: aparece a cada carregamento da página, mas só
+// começa a contar o tempo depois que o age-gate (localStorage `age_verified`)
+// e a localização (localStorage `delivery_address`) já foram resolvidos.
+// `suppressed` reflete o popup de localização aberto (estado do React na home).
+export function CouponPopup({ suppressed = false }: { suppressed?: boolean }) {
   const { applyCoupon } = useCart()
   const [show, setShow] = useState(false)
   const [closed, setClosed] = useState(false)
   const [copied, setCopied] = useState(false)
 
   useEffect(() => {
-    const t = setTimeout(() => setShow(true), delayMs)
-    return () => clearTimeout(t)
-  }, [delayMs])
+    if (suppressed || closed) return
+
+    let delayTimer: ReturnType<typeof setTimeout> | null = null
+
+    const isReady = () => {
+      try {
+        return (
+          localStorage.getItem("age_verified") === "true" &&
+          !!localStorage.getItem("delivery_address")
+        )
+      } catch {
+        return true // sem acesso ao storage: não trava o popup
+      }
+    }
+
+    const startDelay = () => {
+      if (delayTimer) return
+      delayTimer = setTimeout(() => setShow(true), DELAY_AFTER_READY_MS)
+    }
+
+    if (isReady()) {
+      startDelay()
+      return () => {
+        if (delayTimer) clearTimeout(delayTimer)
+      }
+    }
+
+    // Ainda falta confirmar idade/localização: checa de tempos em tempos.
+    const poll = setInterval(() => {
+      if (isReady()) {
+        clearInterval(poll)
+        startDelay()
+      }
+    }, 400)
+
+    return () => {
+      clearInterval(poll)
+      if (delayTimer) clearTimeout(delayTimer)
+    }
+  }, [suppressed, closed])
 
   const visible = show && !closed && !suppressed
   if (!visible) return null

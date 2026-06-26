@@ -4,6 +4,7 @@ import { Geist, Geist_Mono } from 'next/font/google'
 import Script from 'next/script'
 import { CookieBanner } from '@/components/cookie-banner'
 import { AgeVerification } from '@/components/delivery/age-verification'
+import { PresenceTracker } from '@/components/delivery/presence-tracker'
 import { CartProvider } from '@/lib/cart-context'
 import './globals.css'
 
@@ -46,6 +47,7 @@ export default function RootLayout({
           <AgeVerification />
           {children}
           <CookieBanner />
+          <PresenceTracker />
         </CartProvider>
       </body>
     </html>

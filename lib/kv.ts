@@ -65,3 +65,16 @@ export async function kvZRevRange(key: string, start: number, stop: number): Pro
   const res = await command(["ZREVRANGE", key, start, stop])
   return Array.isArray(res) ? res.map(String) : []
 }
+
+// Sorted set: remove membros com score no intervalo [min, max] (usado pra expirar
+// presença antiga). Retorna quantos foram removidos.
+export async function kvZRemRangeByScore(key: string, min: number, max: number): Promise<number> {
+  const res = await command(["ZREMRANGEBYSCORE", key, min, max])
+  return typeof res === "number" ? res : Number(res) || 0
+}
+
+// Sorted set: quantidade de membros (usado pra contar quem está online agora).
+export async function kvZCard(key: string): Promise<number> {
+  const res = await command(["ZCARD", key])
+  return typeof res === "number" ? res : Number(res) || 0
+}

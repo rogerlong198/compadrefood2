@@ -4,6 +4,7 @@ import { getActiveGateway } from "@/lib/gateways/active"
 import { AdminLogin } from "./admin-login"
 import { LogoutButton } from "./logout-button"
 import { GatewaySwitch } from "./gateway-switch"
+import { OnlineCount } from "./online-count"
 
 export const dynamic = "force-dynamic"
 
@@ -49,7 +50,10 @@ export default async function AdminPage() {
               {total} pedido(s) · {pagos} pago(s) · {abandonados} abandonado(s)
             </p>
           </div>
-          <LogoutButton />
+          <div className="flex items-center gap-3">
+            <OnlineCount />
+            <LogoutButton />
+          </div>
         </div>
 
         <GatewaySwitch initial={activeGateway} kvOk={kvConfigured()} />

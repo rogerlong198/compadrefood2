@@ -3,6 +3,7 @@
 // pagamento confirma — assim o e-mail sai mesmo se o cliente fechar a aba.
 
 import { kvClaimOnce, kvConfigured, kvDel, kvGetJSON, kvSetJSON, kvZAdd, kvZRevRange } from "./kv"
+import { getTxGateway, type GatewayId } from "@/lib/gateways/active"
 import type { OrderEmailInput } from "./order-email"
 
 export { kvConfigured }
@@ -17,6 +18,7 @@ export type StoredOrder = OrderEmailInput & {
 export type AdminOrder = StoredOrder & {
   txid: string
   status: "pago" | "aguardando" | "abandonado"
+  gateway: GatewayId
 }
 
 // 3 dias de folga entre criar o PIX e a confirmação/reprocessamento do webhook.
@@ -85,7 +87,9 @@ export async function listRecentOrders(limit = 100): Promise<AdminOrder[]> {
       const ageMin = createdMs ? (Date.now() - createdMs) / 60000 : Infinity
       status = ageMin >= ABANDONED_AFTER_MIN ? "abandonado" : "aguardando"
     }
-    out.push({ ...order, txid, status })
+    // Gateway que processou: pedidos antigos (pré-multi-gateway) eram todos Pagou.ai.
+    const gateway = (await getTxGateway(txid)) ?? "pagou"
+    out.push({ ...order, txid, status, gateway })
   }
   return out
 }

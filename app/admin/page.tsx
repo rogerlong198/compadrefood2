@@ -16,6 +16,11 @@ const STATUS: Record<AdminOrder["status"], { label: string; cls: string }> = {
   abandonado: { label: "Abandonado", cls: "bg-red-100 text-red-700 border-red-200" },
 }
 
+const GATEWAY: Record<AdminOrder["gateway"], { label: string; cls: string }> = {
+  pagou: { label: "Pagou.ai", cls: "bg-sky-100 text-sky-700 border-sky-200" },
+  medusa: { label: "MedusaPay", cls: "bg-violet-100 text-violet-700 border-violet-200" },
+}
+
 export default async function AdminPage() {
   if (!adminConfigured()) {
     return (
@@ -75,6 +80,7 @@ export default async function AdminPage() {
                 <tr className="border-b border-border text-left text-xs uppercase tracking-wide text-muted-foreground">
                   <th className="px-4 py-3 font-semibold">Data</th>
                   <th className="px-4 py-3 font-semibold">Status</th>
+                  <th className="px-4 py-3 font-semibold">Gateway</th>
                   <th className="px-4 py-3 font-semibold">Cliente</th>
                   <th className="px-4 py-3 font-semibold">Itens</th>
                   <th className="px-4 py-3 font-semibold text-right">Total</th>
@@ -84,6 +90,7 @@ export default async function AdminPage() {
               <tbody>
                 {orders.map((o) => {
                   const st = STATUS[o.status]
+                  const gw = GATEWAY[o.gateway] ?? GATEWAY.pagou
                   const when = o.createdAt
                     ? new Date(o.createdAt).toLocaleString("pt-BR", { timeZone: "America/Sao_Paulo" })
                     : "—"
@@ -93,6 +100,11 @@ export default async function AdminPage() {
                       <td className="px-4 py-3">
                         <span className={`inline-block rounded-full border px-2 py-0.5 text-xs font-bold ${st.cls}`}>
                           {st.label}
+                        </span>
+                      </td>
+                      <td className="px-4 py-3">
+                        <span className={`inline-block rounded-full border px-2 py-0.5 text-xs font-bold ${gw.cls}`}>
+                          {gw.label}
                         </span>
                       </td>
                       <td className="px-4 py-3">

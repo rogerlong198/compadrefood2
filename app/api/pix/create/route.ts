@@ -1,12 +1,62 @@
 import { NextResponse } from "next/server"
 import { generateOrderCode, kvConfigured, saveOrderSnapshot } from "@/lib/order-store"
 import { qstashConfigured, scheduleDelayedCall } from "@/lib/qstash"
+import { getActiveGateway, markTxGateway, type GatewayId } from "@/lib/gateways/active"
+import { createPixMedusa, medusaConfigured } from "@/lib/gateways/medusa"
 import type { OrderEmailInput } from "@/lib/order-email"
 
 export const dynamic = "force-dynamic"
 
 // Atraso (em minutos) até checar abandono e disparar o e-mail "esqueceu o carrinho".
 const ABANDONED_DELAY_MIN = 30
+
+// Persiste o snapshot do pedido no KV + marca o gateway + agenda o e-mail de
+// abandono. Compartilhado entre os fluxos Pagou.ai e MedusaPay. Best effort:
+// nunca derruba o PIX.
+async function persistPixOrder(
+  txid: string | null,
+  order: any,
+  value: number,
+  gateway: GatewayId
+): Promise<void> {
+  if (
+    !txid ||
+    !kvConfigured() ||
+    !order?.customer?.email ||
+    !Array.isArray(order?.items) ||
+    order.items.length === 0 ||
+    !order?.address
+  ) {
+    return
+  }
+  try {
+    const snapshot: OrderEmailInput = {
+      orderCode: generateOrderCode(String(txid)),
+      paymentMethod: "pix",
+      customer: order.customer,
+      address: order.address,
+      items: order.items,
+      subtotal: Number(order.subtotal) || Number(value),
+      shipping: Number(order.shipping) || 0,
+      total: Number(order.total) || Number(value),
+    }
+    await saveOrderSnapshot(String(txid), snapshot, Date.now())
+    await markTxGateway(String(txid), gateway)
+
+    // Agenda o e-mail de carrinho abandonado: se em ABANDONED_DELAY_MIN o pedido
+    // não estiver pago, o QStash chama /api/abandoned/check.
+    if (qstashConfigured()) {
+      const appUrl = (process.env.NEXT_PUBLIC_APP_URL || "").replace(/\/$/, "")
+      const secret = process.env.PAGOUAI_WEBHOOK_SECRET || ""
+      if (appUrl) {
+        const callback = `${appUrl}/api/abandoned/check?txid=${encodeURIComponent(String(txid))}&secret=${encodeURIComponent(secret)}`
+        await scheduleDelayedCall(callback, ABANDONED_DELAY_MIN * 60)
+      }
+    }
+  } catch (e) {
+    console.error("[PIX API] Falha ao salvar snapshot / agendar abandono:", e)
+  }
+}
 
 // Status que a Pagou.ai considera como "pago"/liquidado.
 // NÃO inclui "authorized": em cartão isso é só pré-autorização (limite reservado),
@@ -78,6 +128,66 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: "CPF inválido. Deve conter 11 dígitos." }, { status: 400 })
   }
 
+  const amountCents = Math.round(Number(value) * 100)
+  const order = body?.order
+
+  // Em local/dev caímos num IP público BR (os gateways exigem IP do comprador).
+  const ip = getClientIp(request)
+  const buyerIp = isPrivateIp(ip) ? "177.71.248.55" : ip
+
+  // ── Multi-gateway: se o admin escolheu MedusaPay, processa o PIX por lá. ──
+  const activeGateway = await getActiveGateway()
+  if (activeGateway === "medusa") {
+    if (!medusaConfigured()) {
+      console.error("[PIX API] MEDUSAPAY_SECRET_KEY ausente no ambiente.")
+      return NextResponse.json({ error: "Erro interno: MedusaPay não configurada." }, { status: 500 })
+    }
+
+    const appUrl = (process.env.NEXT_PUBLIC_APP_URL || "").replace(/\/$/, "")
+    const wsecret = process.env.PAGOUAI_WEBHOOK_SECRET || ""
+    const postbackUrl = appUrl
+      ? `${appUrl}/api/webhook/medusa${wsecret ? `?secret=${encodeURIComponent(wsecret)}` : ""}`
+      : undefined
+
+    const result = await createPixMedusa({
+      amountCents,
+      name: name.trim(),
+      email: email.trim(),
+      cpfDigits,
+      phoneDigits,
+      ip: buyerIp,
+      title: title || "Pedido CumpadiFood",
+      postbackUrl,
+    })
+
+    if (!result.ok) {
+      console.error(`[PIX/Medusa] Erro (${result.status}):`, result.error)
+      if (result.status === 401) {
+        return NextResponse.json({ error: "Chave de autenticação inválida na MedusaPay." }, { status: 401 })
+      }
+      return NextResponse.json({ error: result.error || "Falha na MedusaPay.", gateway: result.raw }, { status: 502 })
+    }
+    if (!result.qrCode) {
+      console.error("[PIX/Medusa] Sucesso, mas sem QR Code:", JSON.stringify(result.raw))
+      return NextResponse.json({ error: "MedusaPay não retornou QR Code PIX válido." }, { status: 502 })
+    }
+
+    const txid = result.txid ?? null
+    await persistPixOrder(txid, order, Number(value), "medusa")
+
+    return NextResponse.json({
+      txid,
+      qrCode: result.qrCode,
+      qrCodeImage: result.qrCodeImage ?? null,
+      expiresAt: result.expiresAt ?? new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString(),
+      status: result.paymentStatus ?? "pending",
+      paid: isPaidStatus(result.paymentStatus),
+      amount: value,
+      phone: phoneDigits,
+    })
+  }
+
+  // ── Pagou.ai (gateway padrão) ──
   const rawKey = process.env.PAGOUAI_SECRET_KEY
   if (!rawKey) {
     console.error("[PIX API] Chave PAGOUAI_SECRET_KEY ausente no ambiente.")
@@ -85,13 +195,8 @@ export async function POST(request: Request) {
   }
 
   const secretKey = rawKey.trim().replace(/^Bearer\s+/i, "")
-  const amountCents = Math.round(Number(value) * 100)
   const endpoint = "https://api.pagou.ai/v2/transactions"
   const externalRef = `order_${Date.now()}_${cpfDigits.slice(0, 4)}`
-
-  // Pagou.ai v2 exige IP do comprador. Em local/dev caímos num IP público BR.
-  const ip = getClientIp(request)
-  const buyerIp = isPrivateIp(ip) ? "177.71.248.55" : ip
 
   const payload: Record<string, any> = {
     external_ref: externalRef,
@@ -165,44 +270,8 @@ export async function POST(request: Request) {
     const expiresAt = pix.expiration_date ?? new Date(Date.now() + 10 * 60 * 1000).toISOString()
     const txid = transaction?.id ?? data?.id ?? data?.transactionId ?? null
 
-    // Persiste o pedido no KV (chave = txid) pro webhook poder mandar o e-mail
-    // mesmo se o cliente fechar a aba. Best effort: nunca derruba o PIX.
-    const order = body?.order
-    if (
-      txid &&
-      kvConfigured() &&
-      order?.customer?.email &&
-      Array.isArray(order?.items) &&
-      order.items.length > 0 &&
-      order?.address
-    ) {
-      try {
-        const snapshot: OrderEmailInput = {
-          orderCode: generateOrderCode(String(txid)),
-          paymentMethod: "pix",
-          customer: order.customer,
-          address: order.address,
-          items: order.items,
-          subtotal: Number(order.subtotal) || Number(value),
-          shipping: Number(order.shipping) || 0,
-          total: Number(order.total) || Number(value),
-        }
-        await saveOrderSnapshot(String(txid), snapshot, Date.now())
-
-        // Agenda o e-mail de carrinho abandonado: se em ABANDONED_DELAY_MIN o
-        // pedido não estiver pago, o QStash chama /api/abandoned/check.
-        if (qstashConfigured()) {
-          const appUrl = (process.env.NEXT_PUBLIC_APP_URL || "").replace(/\/$/, "")
-          const secret = process.env.PAGOUAI_WEBHOOK_SECRET || ""
-          if (appUrl) {
-            const callback = `${appUrl}/api/abandoned/check?txid=${encodeURIComponent(String(txid))}&secret=${encodeURIComponent(secret)}`
-            await scheduleDelayedCall(callback, ABANDONED_DELAY_MIN * 60)
-          }
-        }
-      } catch (e) {
-        console.error("[PIX API] Falha ao salvar snapshot / agendar abandono:", e)
-      }
-    }
+    // Persiste o pedido no KV pro webhook mandar o e-mail mesmo se a aba fechar.
+    await persistPixOrder(txid ? String(txid) : null, order, Number(value), "pagou")
 
     return NextResponse.json({
       txid,

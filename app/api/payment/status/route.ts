@@ -1,5 +1,7 @@
 import { NextResponse } from "next/server"
 import { isOrderPaid, kvConfigured } from "@/lib/order-store"
+import { getTxGateway } from "@/lib/gateways/active"
+import { getStatusMedusa } from "@/lib/gateways/medusa"
 
 export const dynamic = "force-dynamic"
 
@@ -20,14 +22,27 @@ export async function GET(request: Request) {
   }
 
   // Atalho rápido: se o webhook já marcou pago no KV, confirma na hora — sem
-  // depender da consulta à Pagou, que demora a refletir o pagamento.
+  // depender da consulta ao gateway, que demora a refletir o pagamento.
+  // Vale pros dois gateways (o webhook seta a flag paid:{txid}).
   if (kvConfigured()) {
     try {
       if (await isOrderPaid(txid)) {
         return NextResponse.json({ txid, paid: true, status: "paid", source: "kv" })
       }
     } catch {
-      // KV indisponível: segue pra consulta direta na Pagou.
+      // KV indisponível: segue pra consulta direta no gateway.
+    }
+  }
+
+  // Descobre qual gateway criou essa transação (default Pagou.ai).
+  if (kvConfigured()) {
+    try {
+      if ((await getTxGateway(txid)) === "medusa") {
+        const r = await getStatusMedusa(txid)
+        return NextResponse.json({ txid, paid: r.ok ? r.paid : false, status: r.ok ? r.status : "pending" })
+      }
+    } catch {
+      // segue pra consulta na Pagou
     }
   }
 

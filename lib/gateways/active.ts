@@ -33,3 +33,27 @@ export async function getActiveGateway(): Promise<GatewayId> {
 export async function setActiveGateway(id: GatewayId): Promise<void> {
   await kvSetJSON(KEY, id, TTL)
 }
+
+// Qual gateway criou uma transação específica (txid) — pra consultar status /
+// processar webhook no provider certo mesmo se o admin trocar de gateway depois.
+const txKey = (txid: string) => `gw:${txid}`
+const TX_TTL = 60 * 60 * 24 * 3 // 3 dias (igual ao TTL do pedido)
+
+export async function markTxGateway(txid: string, id: GatewayId): Promise<void> {
+  if (!kvConfigured()) return
+  try {
+    await kvSetJSON(txKey(txid), id, TX_TTL)
+  } catch {
+    // best effort
+  }
+}
+
+export async function getTxGateway(txid: string): Promise<GatewayId | null> {
+  if (!kvConfigured()) return null
+  try {
+    const v = await kvGetJSON<GatewayId>(txKey(txid))
+    return isGatewayId(v) ? v : null
+  } catch {
+    return null
+  }
+}

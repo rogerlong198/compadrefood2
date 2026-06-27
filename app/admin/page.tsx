@@ -10,10 +10,22 @@ export const dynamic = "force-dynamic"
 
 const brl = (v: number) => `R$ ${Number(v || 0).toFixed(2).replace(".", ",")}`
 
-const STATUS: Record<AdminOrder["status"], { label: string; cls: string }> = {
-  pago: { label: "Pago", cls: "bg-emerald-100 text-emerald-700 border-emerald-200" },
-  aguardando: { label: "Aguardando", cls: "bg-amber-100 text-amber-700 border-amber-200" },
-  abandonado: { label: "Abandonado", cls: "bg-red-100 text-red-700 border-red-200" },
+const STATUS: Record<AdminOrder["status"], { label: string; cls: string; desc: string }> = {
+  pago: {
+    label: "Pago",
+    cls: "bg-emerald-100 text-emerald-700 border-emerald-200",
+    desc: "Pagamento confirmado.",
+  },
+  aguardando: {
+    label: "Aguardando",
+    cls: "bg-amber-100 text-amber-700 border-amber-200",
+    desc: "PIX gerado — o cliente ainda pode pagar (até 30 min).",
+  },
+  abandonado: {
+    label: "Abandonado",
+    cls: "bg-red-100 text-red-700 border-red-200",
+    desc: "Gerou o PIX e não voltou pra pagar.",
+  },
 }
 
 const GATEWAY: Record<AdminOrder["gateway"], { label: string; cls: string }> = {
@@ -69,6 +81,14 @@ export default async function AdminPage() {
           </div>
         )}
 
+        {orders.length > 0 && (
+          <div className="mb-4 flex flex-col gap-1 rounded-lg border border-border bg-card px-3 py-2 text-xs text-muted-foreground sm:flex-row sm:flex-wrap sm:gap-x-4">
+            <span><span className="font-bold text-emerald-700">Pago</span>: pagamento confirmado</span>
+            <span><span className="font-bold text-amber-700">Aguardando</span>: PIX gerado, cliente ainda pode pagar (até 30 min)</span>
+            <span><span className="font-bold text-red-700">Abandonado</span>: gerou o PIX e não voltou pra pagar</span>
+          </div>
+        )}
+
         {orders.length === 0 ? (
           <div className="rounded-xl border border-border bg-card p-10 text-center text-sm text-muted-foreground">
             Nenhum pedido ainda.
@@ -91,7 +111,7 @@ export default async function AdminPage() {
                     </div>
 
                     <div className="mt-2 flex flex-wrap gap-1.5">
-                      <span className={`inline-block rounded-full border px-2 py-0.5 text-xs font-bold ${st.cls}`}>
+                      <span title={st.desc} className={`inline-block rounded-full border px-2 py-0.5 text-xs font-bold ${st.cls}`}>
                         {st.label}
                       </span>
                       <span className={`inline-block rounded-full border px-2 py-0.5 text-xs font-bold ${gw.cls}`}>
@@ -160,7 +180,7 @@ export default async function AdminPage() {
                     <tr key={o.txid} className="border-b border-border/60 last:border-0 align-top">
                       <td className="px-4 py-3 whitespace-nowrap text-xs text-muted-foreground">{when}</td>
                       <td className="px-4 py-3">
-                        <span className={`inline-block rounded-full border px-2 py-0.5 text-xs font-bold ${st.cls}`}>
+                        <span title={st.desc} className={`inline-block rounded-full border px-2 py-0.5 text-xs font-bold ${st.cls}`}>
                           {st.label}
                         </span>
                       </td>

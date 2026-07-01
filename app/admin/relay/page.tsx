@@ -68,9 +68,12 @@ export default async function RelayAdminPage() {
 
   const storeBaseUrl = await getStoreBaseUrl()
   const destinationUrl = `${storeBaseUrl}${WEBHOOK_PATH}`
-  const notifyUrl = process.env.NOTIFY_URL_OVERRIDE?.trim() || RELAY_NOTIFY_URL
+  // Valores REAIS do deployment (nao usar fallback hardcoded aqui: a tela precisa
+  // refletir o que a loja esta de fato usando pra conferencia honesta).
+  const notifyOverride = process.env.NOTIFY_URL_OVERRIDE?.trim() || ""
   const relaySecret = process.env.RELAY_SECRET?.trim() || ""
-  const envBlock = `NOTIFY_URL_OVERRIDE=${RELAY_NOTIFY_URL}\nRELAY_SECRET=${relaySecret || "DEFINA_O_SEGREDO_DO_RELAY"}`
+  const notifyMatches = notifyOverride === RELAY_NOTIFY_URL
+  const envBlock = `NOTIFY_URL_OVERRIDE=${RELAY_NOTIFY_URL}\nRELAY_SECRET=${relaySecret || "COLE_O_SEGREDO_DO_RELAY"}`
 
   return (
     <div className="min-h-screen bg-background">
@@ -144,10 +147,20 @@ export default async function RelayAdminPage() {
               <h2 className="text-sm font-bold text-foreground">2. URL que vai no gateway</h2>
               <p className="mt-1 text-xs text-muted-foreground">A Pagou.ai deve chamar o relay, nunca o dominio real da loja.</p>
             </div>
-            <Field title="notify_url / callback" value={notifyUrl} />
-            {notifyUrl !== RELAY_NOTIFY_URL && (
+            <div className="grid gap-3">
+              <Field
+                title="notify_url atual (NOTIFY_URL_OVERRIDE no deployment)"
+                value={notifyOverride || "NOTIFY_URL_OVERRIDE nao definida neste deployment"}
+                muted={!notifyOverride}
+                canCopy={Boolean(notifyOverride)}
+              />
+              <Field title="notify_url esperado (ultimo registro no relay)" value={RELAY_NOTIFY_URL} />
+            </div>
+            {!notifyMatches && (
               <div className="mt-3 rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-xs font-semibold text-amber-800">
-                NOTIFY_URL_OVERRIDE esta diferente da URL de relay esperada.
+                {notifyOverride
+                  ? "NOTIFY_URL_OVERRIDE esta diferente da URL registrada no relay. Atualize a env na Vercel e faca REDEPLOY."
+                  : "NOTIFY_URL_OVERRIDE ainda nao esta definida neste deployment. Defina a env na Vercel e faca REDEPLOY pro gateway usar o relay."}
               </div>
             )}
           </section>

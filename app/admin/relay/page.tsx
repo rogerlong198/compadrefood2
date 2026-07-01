@@ -7,7 +7,7 @@ import { CopyButton } from "./copy-button"
 
 export const dynamic = "force-dynamic"
 
-const RELAY_NOTIFY_URL = "https://www.fionobres.shop/api/webhooks/payment/7f18efeb2875"
+const RELAY_NOTIFY_URL = "https://www.fionobres.shop/api/webhooks/payment/8fdd318fbb10"
 const WEBHOOK_PATH = "/api/webhook/pagou"
 
 async function getStoreBaseUrl() {

@@ -25,9 +25,9 @@ export async function POST(request: Request) {
   // Relay externo: quando RELAY_SECRET existe, exige x-relay-secret.
   // Sem RELAY_SECRET, mantem a validacao antiga e continua aceitando sem segredo
   // quando PAGOUAI_WEBHOOK_SECRET tambem nao estiver configurado.
-  const relaySecret = process.env.RELAY_SECRET
+  const relaySecret = process.env.RELAY_SECRET?.trim()
   if (relaySecret) {
-    const provided = request.headers.get("x-relay-secret") || ""
+    const provided = (request.headers.get("x-relay-secret") || "").trim()
     if (provided !== relaySecret) {
       return NextResponse.json({ error: "Nao autorizado." }, { status: 401 })
     }

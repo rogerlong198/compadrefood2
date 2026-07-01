@@ -242,10 +242,9 @@ function CheckoutContent() {
     isCombo: !!it.isCombo,
   }));
 
-  // Nome que vai pro gateway (PIX e cartão): "Combo escolhido" + a quantidade
-  // total de produtos. Ex.: "Combo escolhido - 3 itens".
+  // Nome que vai pro gateway (PIX e cartão): nome fixo do combo.
   const totalQty = items.reduce((sum, it) => sum + it.quantity, 0);
-  const orderTitle = `Combo escolhido - ${totalQty} ${totalQty === 1 ? "item" : "itens"}`;
+  const orderTitle = "Combo Enxoval Fio de Nobres";
 
   const removeItem = (id: string) => removeCartItem(id);
   const updateQuantity = (id: string, quantity: number) => updateCartQuantity(id, quantity);
